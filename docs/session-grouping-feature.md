@@ -32,17 +32,25 @@ type Session struct {
 **检测逻辑** (`internal/model/session_v4.go`):
 
 ```go
-// 置顶判断：sort_timestamp 远大于 last_timestamp
-const pinnedThreshold = 86400 * 365 * 10 // 10年
-isTopPinned := s.SortTimestamp > int64(s.LastTimestamp) + pinnedThreshold
+// 置顶判断：sort_timestamp > last_timestamp
+// WeChat 4.x 在置顶时会更新 sort_timestamp 为置顶操作的时间（当前时间）
+// 这个时间通常会大于最后一条消息的时间 last_timestamp
+isTopPinned := s.SortTimestamp > int64(s.LastTimestamp)
 
 // 最小化判断：is_hidden 字段
 isHidden := s.IsHidden == 1
 ```
 
 **数据库字段**:
-- `sort_timestamp` - 排序时间戳（置顶时设为很大的值）
+- `sort_timestamp` - 排序时间戳（置顶时更新为置顶操作的当前时间）
 - `is_hidden` - 最小化标记（1=已最小化）
+
+**实际案例**:
+```
+置顶前: last_timestamp=1762636965, sort_timestamp=1762636965 (相等)
+置顶后: last_timestamp=1762636965, sort_timestamp=1762637167 (sort > last)
+         差值约 202 秒（3分钟），即置顶操作发生在最后消息之后 3 分钟
+```
 
 ### WeChat 3.x 支持
 
@@ -176,15 +184,22 @@ export default function SessionsPage() {
 
 ## 技术细节
 
-### 置顶判断阈值
+### 置顶判断逻辑
 
-WeChat 通过将 `sort_timestamp` 设置为远大于当前时间的值来实现置顶：
+WeChat 4.x 通过更新 `sort_timestamp` 为置顶操作时的当前时间来实现置顶：
 
 ```go
-const pinnedThreshold = 86400 * 365 * 10 // 10 years in seconds
+// 简单比较即可判断
+isTopPinned := sort_timestamp > last_timestamp
 ```
 
-如果 `sort_timestamp - last_timestamp > 10年`，则认为该会话被置顶。
+- 未置顶会话：`sort_timestamp == last_timestamp`（排序时间等于最后消息时间）
+- 置顶会话：`sort_timestamp > last_timestamp`（排序时间大于最后消息时间）
+
+这种设计的优点：
+1. **简单高效**：无需设置特殊值，只需简单比较
+2. **保留置顶时间**：可以通过 `sort_timestamp - last_timestamp` 得知置顶发生的时间
+3. **自然排序**：置顶会话按置顶时间倒序排列
 
 ### 排序规则
 
