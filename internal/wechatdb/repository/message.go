@@ -51,8 +51,8 @@ func (r *Repository) enrichMessage(msg *model.Message) {
 		}
 	}
 
-	// 如果不是自己发送的消息且还没有显示名称，尝试补充发送者信息
-	if msg.SenderName == "" && !msg.IsSelf {
+	// 如果还没有显示名称，尝试补充发送者信息
+	if msg.SenderName == "" {
 		contact := r.getFullContact(msg.Sender)
 		if contact != nil {
 			msg.SenderName = contact.DisplayName()
