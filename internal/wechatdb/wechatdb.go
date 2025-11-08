@@ -72,6 +72,7 @@ func (w *DB) GetMessages(start, end time.Time, talker string, sender string, key
 
 type GetContactsResp struct {
 	Items []*model.Contact `json:"items"`
+	Total int             `json:"total"`
 }
 
 func (w *DB) GetContacts(key string, limit, offset int) (*GetContactsResp, error) {
@@ -82,13 +83,21 @@ func (w *DB) GetContacts(key string, limit, offset int) (*GetContactsResp, error
 		return nil, err
 	}
 
+	// Get total count (without limit/offset)
+	allContacts, err := w.repo.GetContacts(ctx, key, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GetContactsResp{
 		Items: contacts,
+		Total: len(allContacts),
 	}, nil
 }
 
 type GetChatRoomsResp struct {
 	Items []*model.ChatRoom `json:"items"`
+	Total int              `json:"total"`
 }
 
 func (w *DB) GetChatRooms(key string, limit, offset int) (*GetChatRoomsResp, error) {
@@ -99,8 +108,15 @@ func (w *DB) GetChatRooms(key string, limit, offset int) (*GetChatRoomsResp, err
 		return nil, err
 	}
 
+	// Get total count (without limit/offset)
+	allChatRooms, err := w.repo.GetChatRooms(ctx, key, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GetChatRoomsResp{
 		Items: chatRooms,
+		Total: len(allChatRooms),
 	}, nil
 }
 
