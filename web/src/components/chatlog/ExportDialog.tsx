@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Download, FileText } from 'lucide-react';
 import {
   Dialog,
@@ -14,6 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import type { Message } from '@/libs/ChatlogAPI';
 import {
   type ExportFormat,
@@ -29,34 +32,82 @@ interface ExportDialogProps {
   messages: Message[];
 }
 
+interface SenderRename {
+  [original: string]: string;
+}
+
 export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('txt');
   const [previewContent, setPreviewContent] = useState<string>('');
+  const [filterSystemMessages, setFilterSystemMessages] = useState(false);
+  const [senderRenames, setSenderRenames] = useState<SenderRename>({});
 
   const formats: ExportFormat[] = ['txt', 'markdown', 'interview', 'html', 'json', 'csv'];
 
+  // 获取所有唯一的发送者
+  const uniqueSenders = useMemo(() => {
+    return Array.from(
+      new Set(
+        messages.map(msg => msg.isSender ? '我' : (msg.sender || msg.talker))
+      )
+    ).sort();
+  }, [messages]);
+
+  // 应用过滤和重命名
+  const processedMessages = useMemo(() => {
+    return messages
+      .filter(msg => {
+        // 过滤系统消息（type > 10000 通常是系统消息）
+        if (filterSystemMessages && msg.type > 10000) {
+          return false;
+        }
+        return true;
+      })
+      .map(msg => {
+        // 应用发送者重命名
+        const originalSender = msg.isSender ? '我' : (msg.sender || msg.talker);
+        const newSender = senderRenames[originalSender] || originalSender;
+
+        if (newSender !== originalSender) {
+          return {
+            ...msg,
+            sender: msg.isSender ? newSender : msg.sender,
+            senderName: newSender,
+          };
+        }
+        return msg;
+      });
+  }, [messages, filterSystemMessages, senderRenames]);
+
   useEffect(() => {
     try {
-      const content = generateExportContent(selectedFormat, messages);
+      const content = generateExportContent(selectedFormat, processedMessages);
       setPreviewContent(content);
     }
     catch (error) {
       console.error('Preview error:', error);
       setPreviewContent('预览失败');
     }
-  }, [selectedFormat, messages]);
+  }, [selectedFormat, processedMessages]);
 
   const handleExport = () => {
     try {
       downloadExport({
         format: selectedFormat,
-        messages,
+        messages: processedMessages,
       });
       onOpenChange(false);
     }
     catch (error) {
       console.error('Export error:', error);
     }
+  };
+
+  const handleSenderRename = (original: string, newName: string) => {
+    setSenderRenames(prev => ({
+      ...prev,
+      [original]: newName,
+    }));
   };
 
   const getPreviewLanguage = () => {
@@ -66,6 +117,7 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
       case 'html':
         return 'html';
       case 'markdown':
+      case 'interview':
         return 'markdown';
       default:
         return 'text';
@@ -74,7 +126,7 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-[90vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -82,24 +134,26 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
           </DialogTitle>
           <DialogDescription>
             选择导出格式并预览内容，共 {messages.length} 条消息
+            {filterSystemMessages && ` (过滤后: ${processedMessages.length} 条)`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-[300px,1fr] gap-6 py-4 overflow-hidden flex-1 min-h-0">
+        <div className="grid grid-cols-[240px,280px,1fr] gap-4 py-4 overflow-hidden flex-1 min-h-0">
+          {/* 格式选择 */}
           <div className="flex flex-col min-h-0">
             <Label className="text-base font-semibold mb-4">选择格式</Label>
             <ScrollArea className="flex-1">
               <RadioGroup value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as ExportFormat)}>
-                <div className="space-y-3 pr-4">
+                <div className="space-y-2 pr-3">
                   {formats.map(format => (
-                    <div key={format} className="flex items-start space-x-3">
+                    <div key={format} className="flex items-start space-x-2">
                       <RadioGroupItem value={format} id={format} className="mt-1" />
                       <Label
                         htmlFor={format}
                         className="flex-1 cursor-pointer hover:bg-accent rounded p-2 -m-2"
                       >
-                        <div className="font-medium">{getFormatLabel(format)}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="font-medium text-sm">{getFormatLabel(format)}</div>
+                        <div className="text-xs text-muted-foreground">
                           {getFormatDescription(format)}
                         </div>
                       </Label>
@@ -110,6 +164,52 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
             </ScrollArea>
           </div>
 
+          {/* 导出选项 */}
+          <div className="flex flex-col min-h-0 border-x px-4">
+            <Label className="text-base font-semibold mb-4">导出选项</Label>
+
+            <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="filter-system"
+                  checked={filterSystemMessages}
+                  onCheckedChange={(checked) => setFilterSystemMessages(checked as boolean)}
+                />
+                <Label
+                  htmlFor="filter-system"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  过滤系统消息
+                </Label>
+              </div>
+
+              <Separator />
+
+              <div className="flex-1 min-h-0 flex flex-col">
+                <Label className="text-sm font-medium mb-2">发送者重命名</Label>
+                <ScrollArea className="flex-1">
+                  <div className="space-y-2 pr-3">
+                    {uniqueSenders.map(sender => (
+                      <div key={sender} className="space-y-1">
+                        <Label htmlFor={`rename-${sender}`} className="text-xs text-muted-foreground">
+                          {sender}
+                        </Label>
+                        <Input
+                          id={`rename-${sender}`}
+                          placeholder={sender}
+                          value={senderRenames[sender] || ''}
+                          onChange={(e) => handleSenderRename(sender, e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </div>
+
+          {/* 预览区域 */}
           <div className="flex flex-col min-h-0">
             <Label className="text-base font-semibold mb-4">
               预览 - {getFormatLabel(selectedFormat)}
@@ -148,7 +248,7 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
           </Button>
           <Button onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
-            导出
+            导出 ({processedMessages.length} 条消息)
           </Button>
         </DialogFooter>
       </DialogContent>
