@@ -31,11 +31,11 @@ type SessionV4 struct {
 	UnreadCount           int    `json:"unread_count"`
 	IsHidden              int    `json:"is_hidden"`
 	SortTimestamp         int64  `json:"sort_timestamp"`
+	Status                int    `json:"status"`
 
 	// Type                     int    `json:"type"`
 	// UnreadFirstMsgSrvID      int    `json:"unread_first_msg_srv_id"`
 	// Draft                    string `json:"draft"`
-	// Status                   int    `json:"status"`
 	// LastClearUnreadTimestamp int    `json:"last_clear_unread_timestamp"`
 	// LastMsgLocaldID          int    `json:"last_msg_locald_id"`
 	// LastMsgType              int    `json:"last_msg_type"`
@@ -44,11 +44,11 @@ type SessionV4 struct {
 }
 
 func (s *SessionV4) Wrap() *Session {
-	// Determine if session is pinned:
-	// When a session is pinned, WeChat updates sort_timestamp to the pin operation time,
-	// which will be greater than last_timestamp (the last message time)
-	// Note: sort_timestamp is updated to current time when pinning, not a far future value
-	isTopPinned := s.SortTimestamp > int64(s.LastTimestamp)
+	// Determine if session is pinned using the status field:
+	// status=0: normal session
+	// status=2: pinned session
+	// status=4: pinned session with additional state (possibly muted)
+	isTopPinned := s.Status == 2 || s.Status == 4
 
 	return &Session{
 		UserName:     s.Username,

@@ -549,16 +549,21 @@ func (ds *DataSource) GetSessions(ctx context.Context, key string, limit, offset
 
 	if key != "" {
 		// 按照关键字查询
-		query = `SELECT username, summary, last_timestamp, last_msg_sender, last_sender_display_name, unread_count, is_hidden, sort_timestamp
+		query = `SELECT username, summary, last_timestamp, last_msg_sender, last_sender_display_name, unread_count, is_hidden, sort_timestamp, status
 				FROM SessionTable
 				WHERE username = ? OR last_sender_display_name = ?
-				ORDER BY sort_timestamp DESC`
+				ORDER BY
+					CASE WHEN status IN (2, 4) THEN 0 ELSE 1 END,
+					sort_timestamp DESC`
 		args = []interface{}{key, key}
 	} else {
 		// 查询所有会话
-		query = `SELECT username, summary, last_timestamp, last_msg_sender, last_sender_display_name, unread_count, is_hidden, sort_timestamp
+		// Order: pinned sessions (status=2 or 4) first, then by sort_timestamp DESC
+		query = `SELECT username, summary, last_timestamp, last_msg_sender, last_sender_display_name, unread_count, is_hidden, sort_timestamp, status
 				FROM SessionTable
-				ORDER BY sort_timestamp DESC`
+				ORDER BY
+					CASE WHEN status IN (2, 4) THEN 0 ELSE 1 END,
+					sort_timestamp DESC`
 	}
 
 	// 添加分页
@@ -592,6 +597,7 @@ func (ds *DataSource) GetSessions(ctx context.Context, key string, limit, offset
 			&sessionV4.UnreadCount,
 			&sessionV4.IsHidden,
 			&sessionV4.SortTimestamp,
+			&sessionV4.Status,
 		)
 
 		if err != nil {
