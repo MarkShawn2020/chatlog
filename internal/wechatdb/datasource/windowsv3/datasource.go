@@ -411,12 +411,12 @@ func (ds *DataSource) GetContacts(ctx context.Context, key string, limit, offset
 
 	if key != "" {
 		// 按照关键字查询
-		query = `SELECT UserName, Alias, Remark, NickName, Reserved1 FROM Contact 
+		query = `SELECT UserName, Alias, Remark, NickName, Reserved1, BigHeadImgUrl, SmallHeadImgUrl, HeadImgMd5 FROM Contact
                 WHERE UserName = ? OR Alias = ? OR Remark = ? OR NickName = ?`
 		args = []interface{}{key, key, key, key}
 	} else {
 		// 查询所有联系人
-		query = `SELECT UserName, Alias, Remark, NickName, Reserved1 FROM Contact`
+		query = `SELECT UserName, Alias, Remark, NickName, Reserved1, BigHeadImgUrl, SmallHeadImgUrl, HeadImgMd5 FROM Contact`
 	}
 
 	// 添加排序、分页
@@ -448,6 +448,9 @@ func (ds *DataSource) GetContacts(ctx context.Context, key string, limit, offset
 			&contactV3.Remark,
 			&contactV3.NickName,
 			&contactV3.Reserved1,
+			&contactV3.BigHeadImgUrl,
+			&contactV3.SmallHeadImgUrl,
+			&contactV3.HeadImgMd5,
 		)
 
 		if err != nil {

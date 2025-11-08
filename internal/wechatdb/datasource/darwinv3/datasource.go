@@ -370,13 +370,13 @@ func (ds *DataSource) GetContacts(ctx context.Context, key string, limit, offset
 
 	if key != "" {
 		// 按照关键字查询
-		query = `SELECT IFNULL(m_nsUsrName,""), IFNULL(nickname,""), IFNULL(m_nsRemark,""), m_uiSex, IFNULL(m_nsAliasName,"") 
-				FROM WCContact 
+		query = `SELECT IFNULL(m_nsUsrName,""), IFNULL(nickname,""), IFNULL(m_nsRemark,""), m_uiSex, IFNULL(m_nsAliasName,""), IFNULL(m_nsHeadImgUrl,""), IFNULL(m_nsHeadHDImgUrl,""), IFNULL(m_nsHeadHDMd5,"")
+				FROM WCContact
 				WHERE m_nsUsrName = ? OR nickname = ? OR m_nsRemark = ? OR m_nsAliasName = ?`
 		args = []interface{}{key, key, key, key}
 	} else {
 		// 查询所有联系人
-		query = `SELECT IFNULL(m_nsUsrName,""), IFNULL(nickname,""), IFNULL(m_nsRemark,""), m_uiSex, IFNULL(m_nsAliasName,"") 
+		query = `SELECT IFNULL(m_nsUsrName,""), IFNULL(nickname,""), IFNULL(m_nsRemark,""), m_uiSex, IFNULL(m_nsAliasName,""), IFNULL(m_nsHeadImgUrl,""), IFNULL(m_nsHeadHDImgUrl,""), IFNULL(m_nsHeadHDMd5,"")
 				FROM WCContact`
 	}
 
@@ -409,6 +409,9 @@ func (ds *DataSource) GetContacts(ctx context.Context, key string, limit, offset
 			&contactDarwinV3.M_nsRemark,
 			&contactDarwinV3.M_uiSex,
 			&contactDarwinV3.M_nsAliasName,
+			&contactDarwinV3.M_nsHeadImgUrl,
+			&contactDarwinV3.M_nsHeadHDImgUrl,
+			&contactDarwinV3.M_nsHeadHDMd5,
 		)
 
 		if err != nil {
