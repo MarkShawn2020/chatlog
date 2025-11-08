@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Loader2, MessageSquare, Download, Image as ImageIcon } from 'lucide-react';
+import { Loader2, MessageSquare, Download, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { selectedConversationAtom, conversationMessagesAtom, exportDialogOpenAtom } from '@/stores/chatlogStore';
 import { chatlogAPI, type Message } from '@/libs/ChatlogAPI';
 import { format } from 'date-fns';
@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { ExportDialog } from './ExportDialog';
 
 export function ChatPanel() {
-  const [selectedConversation] = useAtom(selectedConversationAtom);
+  const [selectedConversation, setSelectedConversation] = useAtom(selectedConversationAtom);
   const [messages, setMessages] = useAtom(conversationMessagesAtom);
   const [exportDialogOpen, setExportDialogOpen] = useAtom(exportDialogOpenAtom);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -79,17 +79,27 @@ export function ChatPanel() {
   return (
     <div className="flex-1 flex flex-col bg-background">
       {/* Header */}
-      <div className="h-16 border-b border-border flex items-center justify-between px-6">
+      <div className="h-16 border-b border-border flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10">
+          {/* Back button for mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden flex-shrink-0"
+            onClick={() => setSelectedConversation(null)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+
+          <Avatar className="w-10 h-10 flex-shrink-0">
             <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.displayName} />
             <AvatarFallback className="bg-primary/10 text-primary">
               {selectedConversation.displayName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h2 className="font-semibold">{selectedConversation.displayName}</h2>
-            <p className="text-xs text-muted-foreground">{selectedConversation.id}</p>
+          <div className="min-w-0">
+            <h2 className="font-semibold truncate">{selectedConversation.displayName}</h2>
+            <p className="text-xs text-muted-foreground truncate">{selectedConversation.id}</p>
           </div>
         </div>
 
@@ -98,15 +108,17 @@ export function ChatPanel() {
             variant="outline"
             size="sm"
             onClick={() => setExportDialogOpen(true)}
+            className="flex-shrink-0"
           >
             <Download className="mr-2 h-4 w-4" />
-            导出 ({messages.length})
+            <span className="hidden sm:inline">导出 ({messages.length})</span>
+            <span className="sm:hidden">{messages.length}</span>
           </Button>
         )}
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         {error ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-muted-foreground">
