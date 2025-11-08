@@ -114,7 +114,7 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
             <Label className="text-base font-semibold mb-4">
               预览 - {getFormatLabel(selectedFormat)}
             </Label>
-            <ScrollArea className="flex-1 w-full rounded-md border">
+            <div className="flex-1 min-h-0 w-full rounded-md border overflow-auto">
               <div className="p-4">
                 {previewContent ? (
                   selectedFormat === 'html' ? (
@@ -138,7 +138,7 @@ export function ExportDialog({ open, onOpenChange, messages }: ExportDialogProps
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
 
