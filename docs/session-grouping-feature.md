@@ -32,26 +32,26 @@ type Session struct {
 **检测逻辑** (`internal/model/session_v4.go`):
 
 ```go
-// 置顶判断：使用 status 字段
-// status=0: 普通会话
-// status=2: 置顶会话
-// status=4: 置顶会话（可能带免打扰状态）
-isTopPinned := s.Status == 2 || s.Status == 4
+// 置顶判断：当 sort_timestamp > last_timestamp 时为置顶
+// 原理：WeChat 在置顶会话时会更新 sort_timestamp，使其大于 last_timestamp
+// 这会在两个时间戳之间产生一个时间差
+isTopPinned := s.SortTimestamp > int64(s.LastTimestamp)
 
 // 最小化判断：is_hidden 字段
 isHidden := s.IsHidden == 1
 ```
 
 **数据库字段**:
-- `status` - 会话状态（0=普通，2=置顶，4=置顶+其他状态）
+- `sort_timestamp` - 排序时间戳（置顶时被更新为当前时间或更大值）
+- `last_timestamp` - 最后消息时间戳
 - `is_hidden` - 最小化标记（1=已最小化）
-- `sort_timestamp` - 排序时间戳（用于同类会话内部排序）
+- `status` - 会话状态字段（用途不明，不是置顶标识）
 
 **排序规则**:
 ```sql
 ORDER BY
-  CASE WHEN status IN (2, 4) THEN 0 ELSE 1 END,  -- 置顶优先
-  sort_timestamp DESC                             -- 时间倒序
+  CASE WHEN sort_timestamp > last_timestamp THEN 0 ELSE 1 END,  -- 置顶优先
+  sort_timestamp DESC                                            -- 时间倒序
 ```
 
 这确保所有置顶会话始终排在最前面，不受最后消息时间影响。
@@ -190,36 +190,42 @@ export default function SessionsPage() {
 
 ### 置顶判断逻辑
 
-WeChat 4.x 使用 `status` 字段标识会话状态：
+WeChat 4.x 通过时间戳比较判断置顶状态：
 
 ```go
-// 使用 status 字段判断
-isTopPinned := status == 2 || status == 4
+// 使用时间戳差判断
+isTopPinned := sort_timestamp > last_timestamp
 ```
 
-**状态值说明**：
-- `status=0`: 普通会话（664个）
-- `status=2`: 置顶会话（15个）
-- `status=4`: 置顶+其他状态，如免打扰（3个）
+**工作原理**：
+当用户在微信中置顶一个会话时，微信会更新 `sort_timestamp` 字段，使其大于 `last_timestamp`。这样：
+- 置顶会话：`sort_timestamp` > `last_timestamp`，产生正的时间差
+- 普通会话：`sort_timestamp` = `last_timestamp`，时间差为0
+- 取消置顶时：微信会将 `sort_timestamp` 重置为 `last_timestamp`
+
+**实例验证**（三个手工川群组测试）：
+- 置顶的 α 群：sort_timestamp=1762638341, last_timestamp=1762624759, diff=13582 ✓
+- 置顶的 β 群：sort_timestamp=1762638650, last_timestamp=1762624759, diff=13891 ✓
+- 取消置顶的 γ 群：sort_timestamp=1762624740, last_timestamp=1762624740, diff=0 ✓
 
 **关键发现**：
-- ❌ `sort_timestamp` **不是**置顶标识（只用于排序）
-- ✅ `status` 字段才是真正的置顶标识
-- 置顶会话的 `sort_timestamp` 可能比普通会话更旧
+- ✅ `sort_timestamp > last_timestamp` 是正确的置顶判断条件
+- ❌ `status` 字段不是置顶标识（用途不明）
+- 时间差大小无关紧要，只要 `sort_timestamp` 大于 `last_timestamp` 就是置顶
 
 **为什么需要特殊排序**：
-由于置顶会话的 `sort_timestamp` 可能很旧（例如最后消息是几天前），如果只按 `sort_timestamp DESC` 排序，这些置顶会话会被排到很后面。因此需要先按 `status` 分组，再按时间排序：
+虽然置顶会话的 `sort_timestamp` 更大，但为了确保所有置顶会话始终排在最前面，需要使用两级排序：
 
 ```sql
 ORDER BY
-  CASE WHEN status IN (2, 4) THEN 0 ELSE 1 END,  -- 置顶会话优先级0，普通会话优先级1
-  sort_timestamp DESC                             -- 同优先级内按时间倒序
+  CASE WHEN sort_timestamp > last_timestamp THEN 0 ELSE 1 END,  -- 置顶会话优先级0，普通会话优先级1
+  sort_timestamp DESC                                            -- 同优先级内按时间倒序
 ```
 
 ### 排序规则
 
 **后端排序**（SQL）：
-1. 第一优先级：`status IN (2,4)` 的置顶会话排在前面
+1. 第一优先级：`sort_timestamp > last_timestamp` 的置顶会话排在前面
 2. 第二优先级：同类会话按 `sort_timestamp DESC` 排序
 3. 结果：所有置顶会话在前，按时间倒序；普通会话在后，也按时间倒序
 
