@@ -9,8 +9,7 @@ import { Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { activeSectionAtom, selectedConversationAtom, type SelectedConversation } from '@/stores/chatlogStore';
 import { chatlogAPI } from '@/libs/ChatlogAPI';
-import { useState, useEffect } from 'react';
-import { useInView } from 'react-intersection-observer';
+import { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -22,6 +21,7 @@ export function ConversationListPanel() {
   const [activeSection] = useAtom(activeSectionAtom);
   const [selectedConversation, setSelectedConversation] = useAtom(selectedConversationAtom);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch sessions with infinite scroll
   const {
@@ -105,23 +105,44 @@ export function ConversationListPanel() {
   const contacts = contactsData?.pages.flatMap(page => page.items) ?? [];
   const chatrooms = chatroomsData?.pages.flatMap(page => page.items) ?? [];
 
-  // Infinite scroll observer using useInView hook
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0,
-    rootMargin: '100px',
-  });
-
+  // Handle infinite scroll with scroll event listener
   useEffect(() => {
-    if (inView) {
-      if (activeSection === 'chats' && hasNextSessionsPage && !isFetchingNextSessionsPage) {
-        fetchNextSessionsPage();
-      } else if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
-        fetchNextContactsPage();
-      } else if (activeSection === 'groups' && hasNextChatroomsPage && !isFetchingNextChatroomsPage) {
-        fetchNextChatroomsPage();
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Trigger load when within 200px of bottom
+      if (distanceFromBottom < 200) {
+        if (activeSection === 'chats' && hasNextSessionsPage && !isFetchingNextSessionsPage) {
+          fetchNextSessionsPage();
+        } else if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
+          fetchNextContactsPage();
+        } else if (activeSection === 'groups' && hasNextChatroomsPage && !isFetchingNextChatroomsPage) {
+          fetchNextChatroomsPage();
+        }
       }
-    }
-  }, [inView, activeSection, hasNextSessionsPage, hasNextContactsPage, hasNextChatroomsPage, isFetchingNextSessionsPage, isFetchingNextContactsPage, isFetchingNextChatroomsPage, fetchNextSessionsPage, fetchNextContactsPage, fetchNextChatroomsPage]);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    // Also check on mount in case content is shorter than container
+    handleScroll();
+
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [
+    activeSection,
+    hasNextSessionsPage,
+    hasNextContactsPage,
+    hasNextChatroomsPage,
+    isFetchingNextSessionsPage,
+    isFetchingNextContactsPage,
+    isFetchingNextChatroomsPage,
+    fetchNextSessionsPage,
+    fetchNextContactsPage,
+    fetchNextChatroomsPage,
+  ]);
 
   // Filter and map data based on active section
   const items = (() => {
@@ -210,7 +231,7 @@ export function ConversationListPanel() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {error ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
             <p className="text-sm text-destructive text-center mb-2">加载失败</p>
@@ -279,16 +300,10 @@ export function ConversationListPanel() {
               })}
             </div>
 
-            {/* Infinite scroll trigger and loading indicator */}
-            {((activeSection === 'chats' && hasNextSessionsPage) ||
-              (activeSection === 'contacts' && hasNextContactsPage) ||
-              (activeSection === 'groups' && hasNextChatroomsPage)) && (
-              <div ref={loadMoreRef} className="py-4 flex justify-center">
-                {(isFetchingNextSessionsPage || isFetchingNextContactsPage || isFetchingNextChatroomsPage) ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <span className="text-xs text-muted-foreground">滚动加载更多...</span>
-                )}
+            {/* Loading indicator */}
+            {(isFetchingNextSessionsPage || isFetchingNextContactsPage || isFetchingNextChatroomsPage) && (
+              <div className="py-4 flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             )}
           </>
