@@ -279,6 +279,15 @@ func (s *Service) handleSessions(c *gin.Context) {
 		errors.Err(c, err)
 		return
 	}
+
+	// Convert relative avatar URLs to absolute URLs
+	baseURL := s.getBaseURL(c)
+	for _, session := range sessions.Items {
+		if session.AvatarURL != "" && strings.HasPrefix(session.AvatarURL, "/") {
+			session.AvatarURL = baseURL + session.AvatarURL
+		}
+	}
+
 	format := strings.ToLower(q.Format)
 	switch format {
 	case "csv":
@@ -436,4 +445,17 @@ func (s *Service) HandleVoice(c *gin.Context, data []byte) {
 		return
 	}
 	c.Data(http.StatusOK, "audio/mp3", out)
+}
+
+// getBaseURL returns the base URL (scheme + host) from the request
+func (s *Service) getBaseURL(c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	host := c.Request.Host
+	if host == "" {
+		host = c.GetHeader("Host")
+	}
+	return scheme + "://" + host
 }
