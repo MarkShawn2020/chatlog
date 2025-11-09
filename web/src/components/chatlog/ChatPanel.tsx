@@ -27,8 +27,15 @@ export function ChatPanel() {
   // Auto scroll to bottom when messages load/change (no animation)
   useEffect(() => {
     if (messages.length > 0 && messagesContainerRef.current) {
-      // Directly set scrollTop to scrollHeight for instant scroll to bottom
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      // Double requestAnimationFrame to ensure DOM has been fully rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+            console.log('📜 Scrolled to:', messagesContainerRef.current.scrollTop, 'of', messagesContainerRef.current.scrollHeight);
+          }
+        });
+      });
     }
   }, [messages]);
 
