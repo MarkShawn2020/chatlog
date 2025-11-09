@@ -185,7 +185,7 @@ export function ConversationListPanel() {
   };
 
   return (
-    <div className="w-full lg:w-80 bg-background border-r border-border flex flex-col">
+    <div className="w-80 shrink-0 bg-background border-r border-border flex flex-col min-w-0">
       {/* Search bar */}
       <div className="p-4 border-b border-border">
         <div className="relative">

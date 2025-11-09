@@ -47,7 +47,7 @@ export function ChatLayout() {
           </div>
 
           {/* Middle: Conversation List - hidden on mobile when chat is open */}
-          <div className={selectedConversation ? 'hidden md:flex md:min-w-0 md:w-80' : 'flex flex-1 min-w-0'}>
+          <div className={selectedConversation ? 'hidden md:flex' : 'flex flex-1 min-w-0'}>
             <ConversationListPanel />
           </div>
 
