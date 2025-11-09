@@ -69,11 +69,50 @@ function updateVersionHeader(content, commitHash, date) {
   }
 }
 
+// Update version.ts with git commit info
+function updateVersionFile(commitHash, currentDate) {
+  const versionFilePath = 'src/utils/version.ts';
+
+  if (!fs.existsSync(versionFilePath)) {
+    return false;
+  }
+
+  try {
+    const content = fs.readFileSync(versionFilePath, 'utf-8');
+
+    // Update GIT_COMMIT_HASH
+    let updatedContent = content.replace(
+      /export const GIT_COMMIT_HASH = '[^']*';/,
+      `export const GIT_COMMIT_HASH = '${commitHash}';`
+    );
+
+    // Update GIT_COMMIT_DATE
+    updatedContent = updatedContent.replace(
+      /export const GIT_COMMIT_DATE = '[^']*';/,
+      `export const GIT_COMMIT_DATE = '${currentDate}';`
+    );
+
+    if (content !== updatedContent) {
+      fs.writeFileSync(versionFilePath, updatedContent, 'utf-8');
+      execSync(`git add "${versionFilePath}"`, { encoding: 'utf-8' });
+      console.log(`✓ Updated version file: ${versionFilePath}`);
+      return true;
+    }
+  } catch (error) {
+    console.error(`✗ Error updating version file:`, error.message);
+  }
+
+  return false;
+}
+
 // Main execution
 function main() {
   const commitHash = getLatestCommitHash();
   const currentDate = getCurrentDate();
   const stagedFiles = getStagedFiles();
+
+  // Always update version.ts file
+  updateVersionFile(commitHash, currentDate);
 
   if (stagedFiles.length === 0) {
     console.log('No staged files to update');
