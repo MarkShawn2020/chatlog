@@ -181,7 +181,9 @@ export function ConversationListPanel() {
       displayName: item.displayName,
       avatar: item.avatar,
     };
+    console.log('🔍 [ConversationListPanel] Selecting conversation:', conversation);
     setSelectedConversation(conversation);
+    console.log('✅ [ConversationListPanel] Conversation selected');
   };
 
   return (

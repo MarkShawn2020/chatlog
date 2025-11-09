@@ -19,6 +19,10 @@ export function ChatPanel() {
   const [exportDialogOpen, setExportDialogOpen] = useAtom(exportDialogOpenAtom);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  useEffect(() => {
+    console.log('🎯 [ChatPanel] selectedConversation changed:', selectedConversation);
+  }, [selectedConversation]);
+
   // Fetch messages when conversation is selected
   const { data, isLoading, error } = useQuery({
     queryKey: ['chatlog', selectedConversation?.id],
