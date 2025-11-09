@@ -276,6 +276,10 @@ export function ConversationListPanel() {
     return [];
   })();
 
+  // Separate pinned and unpinned items
+  const pinnedItems = items.filter(item => 'isPinned' in item && item.isPinned);
+  const unpinnedItems = items.filter(item => !('isPinned' in item) || !item.isPinned);
+
   const handleSelectItem = (item: typeof items[0]) => {
     const conversation: SelectedConversation = {
       type: item.type,
@@ -336,10 +340,62 @@ export function ConversationListPanel() {
           </div>
         ) : (
           <>
+            {/* Pinned items */}
+            {pinnedItems.length > 0 && (
+              <div className="border-b-2 border-border/50">
+                {pinnedItems.map((item) => {
+                  const isSelected = selectedConversation?.id === item.id && selectedConversation?.type === item.type;
+
+                  return (
+                    <button
+                      key={`${item.type}-${item.id}`}
+                      onClick={() => handleSelectItem(item)}
+                      className={cn(
+                        'w-full p-4 flex items-start gap-3 hover:bg-accent/50 transition-colors text-left',
+                        'bg-muted/50 border-l-[3px] border-primary/40',
+                        isSelected && 'bg-accent'
+                      )}
+                    >
+                      <Avatar className="w-12 h-12 flex-shrink-0">
+                        <AvatarImage src={item.avatar} alt={item.displayName} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {item.displayName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2 mb-1">
+                          <span className="font-medium text-sm truncate">
+                            {item.displayName}
+                          </span>
+                          {'time' in item && item.time && (
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              {item.time}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-muted-foreground truncate flex-1">
+                            {item.subtitle}
+                          </p>
+                          {'unreadCount' in item && item.unreadCount > 0 && (
+                            <Badge variant="destructive" className="flex-shrink-0 h-5 min-w-5 px-1.5 text-xs">
+                              {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Unpinned items */}
             <div>
-              {items.map((item) => {
+              {unpinnedItems.map((item) => {
                 const isSelected = selectedConversation?.id === item.id && selectedConversation?.type === item.type;
-                const isPinned = 'isPinned' in item && item.isPinned;
 
                 return (
                   <button
@@ -347,8 +403,7 @@ export function ConversationListPanel() {
                     onClick={() => handleSelectItem(item)}
                     className={cn(
                       'w-full p-4 flex items-start gap-3 hover:bg-accent/50 transition-colors text-left',
-                      isSelected && 'bg-accent',
-                      isPinned && 'bg-muted/40 border-l-[3px] border-muted-foreground/30'
+                      isSelected && 'bg-accent'
                     )}
                   >
                     <Avatar className="w-12 h-12 flex-shrink-0">
