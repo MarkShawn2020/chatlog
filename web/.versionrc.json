@@ -1,0 +1,29 @@
+{
+  "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n",
+  "types": [
+    { "type": "feat", "section": "✨ Features" },
+    { "type": "fix", "section": "🐛 Bug Fixes" },
+    { "type": "perf", "section": "⚡ Performance" },
+    { "type": "refactor", "section": "♻️ Refactoring" },
+    { "type": "docs", "section": "📝 Documentation", "hidden": false },
+    { "type": "style", "section": "💎 Styles", "hidden": true },
+    { "type": "chore", "section": "🔧 Chores", "hidden": true },
+    { "type": "test", "section": "✅ Tests", "hidden": true },
+    { "type": "build", "section": "🏗️ Build", "hidden": true },
+    { "type": "ci", "section": "👷 CI", "hidden": true }
+  ],
+  "skip": {
+    "changelog": false,
+    "commit": false,
+    "tag": false
+  },
+  "bumpFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    }
+  ],
+  "scripts": {
+    "postbump": "node scripts/update-version-headers.js"
+  }
+}
