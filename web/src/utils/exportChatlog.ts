@@ -9,12 +9,12 @@ export interface ExportOptions {
   filename?: string;
 }
 
-function formatTime(timestamp: number): string {
+function formatTime(timeStr: string): string {
   try {
-    return formatDate(new Date(timestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
+    return formatDate(new Date(timeStr), 'yyyy-MM-dd HH:mm:ss');
   }
   catch {
-    return String(timestamp);
+    return timeStr;
   }
 }
 
@@ -25,8 +25,8 @@ export function exportToJSON(messages: Message[]): string {
 export function exportToCSV(messages: Message[]): string {
   const headers = ['时间', '发送者', '聊天对象', '消息类型', '内容'];
   const rows = messages.map((msg) => {
-    const time = formatTime(msg.createTime);
-    const sender = msg.isSender ? '我' : (msg.sender || msg.talker);
+    const time = formatTime(msg.time);
+    const sender = msg.isSelf ? '我' : (msg.sender || msg.talker);
     const talker = msg.talker;
     const type = msg.type;
     const content = (msg.displayContent || msg.content || '').replace(/"/g, '""');
@@ -39,8 +39,8 @@ export function exportToCSV(messages: Message[]): string {
 export function exportToText(messages: Message[]): string {
   return messages
     .map((msg) => {
-      const time = formatTime(msg.createTime);
-      const sender = msg.isSender ? '我' : (msg.sender || msg.talker);
+      const time = formatTime(msg.time);
+      const sender = msg.isSelf ? '我' : (msg.sender || msg.talker);
       const content = msg.displayContent || msg.content || '[无内容]';
       return `[${time}] ${sender}: ${content}`;
     })
@@ -50,15 +50,15 @@ export function exportToText(messages: Message[]): string {
 export function exportToHTML(messages: Message[]): string {
   const messageRows = messages
     .map((msg) => {
-      const time = formatTime(msg.createTime);
-      const sender = msg.isSender ? '我' : (msg.sender || msg.talker);
+      const time = formatTime(msg.time);
+      const sender = msg.isSelf ? '我' : (msg.sender || msg.talker);
       const content = (msg.displayContent || msg.content || '[无内容]')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/\n/g, '<br>');
-      const alignment = msg.isSender ? 'right' : 'left';
-      const bgColor = msg.isSender ? '#dcf8c6' : '#ffffff';
+      const alignment = msg.isSelf ? 'right' : 'left';
+      const bgColor = msg.isSelf ? '#dcf8c6' : '#ffffff';
 
       return `
     <div style="margin: 10px 0; text-align: ${alignment};">
@@ -152,8 +152,8 @@ export function exportToMarkdown(messages: Message[]): string {
 
   const messageList = messages
     .map((msg) => {
-      const time = formatTime(msg.createTime);
-      const sender = msg.isSender ? '我' : (msg.sender || msg.talker);
+      const time = formatTime(msg.time);
+      const sender = msg.isSelf ? '我' : (msg.sender || msg.talker);
       const isImageMsg = msg.type === 3;
       const typeInfo = msg.type !== 1 && msg.type !== 3 ? ` *(类型: ${msg.type})*` : '';
 
@@ -186,7 +186,7 @@ export function exportToInterview(messages: Message[]): string {
   let lastSender = '';
 
   for (const msg of messages) {
-    const sender = msg.isSender ? '我' : (msg.senderName || msg.sender || msg.talker);
+    const sender = msg.isSelf ? '我' : (msg.senderName || msg.sender || msg.talker);
     const isImageMsg = msg.type === 3;
 
     let content = msg.displayContent || msg.content || '[无内容]';

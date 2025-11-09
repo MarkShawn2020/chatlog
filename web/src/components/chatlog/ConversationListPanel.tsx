@@ -23,13 +23,26 @@ export function ConversationListPanel() {
   const [selectedConversation, setSelectedConversation] = useAtom(selectedConversationAtom);
   const [searchKeyword, setSearchKeyword] = useState('');
 
-  // Fetch sessions
-  const { data: sessions, isLoading: isLoadingSessions, error: sessionsError } = useQuery({
+  // Fetch sessions with infinite scroll
+  const {
+    data: sessionsData,
+    fetchNextPage: fetchNextSessionsPage,
+    hasNextPage: hasNextSessionsPage,
+    isFetchingNextPage: isFetchingNextSessionsPage,
+    isLoading: isLoadingSessions,
+    error: sessionsError,
+  } = useInfiniteQuery({
     queryKey: ['sessions'],
-    queryFn: () => chatlogAPI.getSessions({ format: 'json' }),
+    queryFn: ({ pageParam = 0 }) =>
+      chatlogAPI.getSessions({ format: 'json', limit: 50, offset: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.reduce((sum, page) => sum + page.items.length, 0);
+      return loadedCount < lastPage.total ? loadedCount : undefined;
+    },
     enabled: activeSection === 'chats',
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    initialPageParam: 0,
   });
 
   // Fetch contacts with infinite scroll
@@ -80,6 +93,7 @@ export function ConversationListPanel() {
   const error = sessionsError || contactsError || chatroomsError;
 
   // Flatten infinite query pages
+  const sessions = sessionsData?.pages.flatMap(page => page.items) ?? [];
   const contacts = contactsData?.pages.flatMap(page => page.items) ?? [];
   const chatrooms = chatroomsData?.pages.flatMap(page => page.items) ?? [];
 
@@ -91,20 +105,22 @@ export function ConversationListPanel() {
 
   useEffect(() => {
     if (inView) {
-      if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
+      if (activeSection === 'chats' && hasNextSessionsPage && !isFetchingNextSessionsPage) {
+        fetchNextSessionsPage();
+      } else if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
         fetchNextContactsPage();
       } else if (activeSection === 'groups' && hasNextChatroomsPage && !isFetchingNextChatroomsPage) {
         fetchNextChatroomsPage();
       }
     }
-  }, [inView, activeSection, hasNextContactsPage, hasNextChatroomsPage, isFetchingNextContactsPage, isFetchingNextChatroomsPage, fetchNextContactsPage, fetchNextChatroomsPage]);
+  }, [inView, activeSection, hasNextSessionsPage, hasNextContactsPage, hasNextChatroomsPage, isFetchingNextSessionsPage, isFetchingNextContactsPage, isFetchingNextChatroomsPage, fetchNextSessionsPage, fetchNextContactsPage, fetchNextChatroomsPage]);
 
   // Filter and map data based on active section
   const items = (() => {
     const keyword = searchKeyword.toLowerCase();
 
-    if (activeSection === 'chats' && sessions?.items) {
-      return sessions.items
+    if (activeSection === 'chats' && sessions.length > 0) {
+      return sessions
         .filter(s =>
           !keyword ||
           s.userName.toLowerCase().includes(keyword) ||
@@ -254,13 +270,14 @@ export function ConversationListPanel() {
             </div>
 
             {/* Infinite scroll trigger and loading indicator */}
-            {(activeSection === 'contacts' || activeSection === 'groups') && (
+            {((activeSection === 'chats' && hasNextSessionsPage) ||
+              (activeSection === 'contacts' && hasNextContactsPage) ||
+              (activeSection === 'groups' && hasNextChatroomsPage)) && (
               <div ref={loadMoreRef} className="py-4 flex justify-center">
-                {(isFetchingNextContactsPage || isFetchingNextChatroomsPage) && (
+                {(isFetchingNextSessionsPage || isFetchingNextContactsPage || isFetchingNextChatroomsPage) ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                )}
-                {!isFetchingNextContactsPage && !isFetchingNextChatroomsPage && (hasNextContactsPage || hasNextChatroomsPage) && (
-                  <span className="text-xs text-muted-foreground">加载更多...</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">滚动加载更多...</span>
                 )}
               </div>
             )}

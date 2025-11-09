@@ -169,6 +169,11 @@ func (s *Service) handleContacts(c *gin.Context) {
 		return
 	}
 
+	// Set default limit to 10 if not specified
+	if q.Limit == 0 {
+		q.Limit = 10
+	}
+
 	list, err := s.db.GetContacts(q.Keyword, q.Limit, q.Offset)
 	if err != nil {
 		errors.Err(c, err)
@@ -214,6 +219,11 @@ func (s *Service) handleChatRooms(c *gin.Context) {
 		return
 	}
 
+	// Set default limit to 10 if not specified
+	if q.Limit == 0 {
+		q.Limit = 10
+	}
+
 	list, err := s.db.GetChatRooms(q.Keyword, q.Limit, q.Offset)
 	if err != nil {
 		errors.Err(c, err)
@@ -256,6 +266,11 @@ func (s *Service) handleSessions(c *gin.Context) {
 	if err := c.BindQuery(&q); err != nil {
 		errors.Err(c, err)
 		return
+	}
+
+	// Set default limit to 10 if not specified
+	if q.Limit == 0 {
+		q.Limit = 10
 	}
 
 	sessions, err := s.db.GetSessions(q.Keyword, q.Limit, q.Offset)

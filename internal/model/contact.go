@@ -7,6 +7,7 @@ type Contact struct {
 	NickName        string `json:"nickName"`
 	IsFriend        bool   `json:"isFriend"`
 	IsPinned        bool   `json:"isPinned"`
+	IsMinimized     bool   `json:"isMinimized"`
 	BigHeadImgUrl   string `json:"bigHeadImgUrl,omitempty"`
 	SmallHeadImgUrl string `json:"smallHeadImgUrl,omitempty"`
 	HeadImgMd5      string `json:"headImgMd5,omitempty"`

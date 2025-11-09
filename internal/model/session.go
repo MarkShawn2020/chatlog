@@ -15,6 +15,7 @@ type Session struct {
 	ParentRef    string    `json:"parentRef"`
 	NUnReadCount int       `json:"nUnReadCount"`
 	IsPinned     bool      `json:"isPinned"`
+	IsMinimized  bool      `json:"isMinimized"`
 }
 
 // CREATE TABLE Session(

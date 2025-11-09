@@ -39,12 +39,12 @@ export function ChatPanel() {
     }
   }, [data, setMessages]);
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timeStr: string) => {
     try {
-      return format(new Date(timestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
+      return format(new Date(timeStr), 'yyyy-MM-dd HH:mm:ss');
     }
     catch {
-      return String(timestamp);
+      return timeStr;
     }
   };
 
@@ -118,9 +118,9 @@ export function ChatPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {error ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20 text-destructive" />
               <p className="text-destructive mb-1">加载失败</p>
@@ -128,21 +128,21 @@ export function ChatPanel() {
             </div>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">加载消息中...</p>
             </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p>暂无聊天记录</p>
             </div>
           </div>
         ) : (
-          <div className="space-y-4 max-w-4xl mx-auto">
+          <div className="space-y-4 max-w-4xl mx-auto p-4 md:p-6">
             {messages.map((message, index) => {
               const isSystemMsg = message.type === 10000;
               const isImageMsg = message.type === 3;
@@ -161,7 +161,7 @@ export function ChatPanel() {
               return (
                 <div
                   key={index}
-                  className={`flex gap-3 ${message.isSender ? 'flex-row-reverse' : 'flex-row'}`}
+                  className={`flex gap-3 w-full ${message.isSelf ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
@@ -170,8 +170,8 @@ export function ChatPanel() {
                         src={message.senderAvatar}
                         alt={message.senderName || message.sender || '用户'}
                       />
-                      <AvatarFallback className={message.isSender ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
-                        {message.isSender
+                      <AvatarFallback className={message.isSelf ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
+                        {message.isSelf
                           ? '我'
                           : (message.senderName || message.sender || '?').slice(0, 2).toUpperCase()
                         }
@@ -180,23 +180,23 @@ export function ChatPanel() {
                   </div>
 
                   {/* Message bubble */}
-                  <div className={`flex flex-col max-w-[60%] ${message.isSender ? 'items-end' : 'items-start'}`}>
+                  <div className={`flex flex-col max-w-[70%] sm:max-w-[60%] min-w-0 ${message.isSelf ? 'items-end' : 'items-start'}`}>
                     {/* Sender name and time */}
-                    <div className={`flex gap-2 items-center mb-1 px-1 ${message.isSender ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {message.isSender ? '我' : (message.senderName || message.sender || message.talker)}
+                    <div className={`flex gap-2 items-center mb-1 px-1 max-w-full ${message.isSelf ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <span className="text-xs text-muted-foreground font-medium truncate">
+                        {message.isSelf ? '我' : (message.senderName || message.sender || message.talker)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(message.createTime)}
+                      <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                        {formatTime(message.time)}
                       </span>
                     </div>
 
                     {/* Message content */}
                     <div
-                      className={`rounded-lg ${
+                      className={`rounded-lg max-w-full ${
                         isImageMsg ? 'p-1' : 'px-4 py-2'
                       } ${
-                        message.isSender
+                        message.isSelf
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
                       }`}
@@ -235,7 +235,7 @@ export function ChatPanel() {
                       )}
 
                       {!isImageMsg && (
-                        <div className="text-sm whitespace-pre-wrap break-words">
+                        <div className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
                           {message.displayContent || message.content || '[无内容]'}
                         </div>
                       )}

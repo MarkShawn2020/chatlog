@@ -55,12 +55,12 @@ export function ChatlogViewer() {
     setSearchParams(cleanParams);
   };
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timeStr: string) => {
     try {
-      return format(new Date(timestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
+      return format(new Date(timeStr), 'yyyy-MM-dd HH:mm:ss');
     }
     catch {
-      return String(timestamp);
+      return timeStr;
     }
   };
 
@@ -221,7 +221,7 @@ export function ChatlogViewer() {
                   return (
                     <div
                       key={index}
-                      className={`flex gap-2 ${message.isSender ? 'flex-row-reverse' : 'flex-row'}`}
+                      className={`flex gap-2 ${message.isSelf ? 'flex-row-reverse' : 'flex-row'}`}
                     >
                       {/* Avatar */}
                       <div className="flex-shrink-0 mt-1">
@@ -230,8 +230,8 @@ export function ChatlogViewer() {
                             src={message.senderAvatar}
                             alt={message.senderName || message.sender || '用户'}
                           />
-                          <AvatarFallback className={message.isSender ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
-                            {message.isSender
+                          <AvatarFallback className={message.isSelf ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
+                            {message.isSelf
                               ? '我'
                               : (message.senderName || message.sender || '?').slice(0, 2).toUpperCase()
                             }
@@ -240,14 +240,14 @@ export function ChatlogViewer() {
                       </div>
 
                       {/* Message bubble */}
-                      <div className={`flex flex-col max-w-[70%] ${message.isSender ? 'items-end' : 'items-start'}`}>
+                      <div className={`flex flex-col max-w-[70%] ${message.isSelf ? 'items-end' : 'items-start'}`}>
                         {/* Sender name and time */}
-                        <div className={`flex gap-2 items-center mb-1 px-1 ${message.isSender ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`flex gap-2 items-center mb-1 px-1 ${message.isSelf ? 'flex-row-reverse' : 'flex-row'}`}>
                           <span className="text-xs text-muted-foreground font-medium">
-                            {message.isSender ? '我' : (message.senderName || message.sender || message.talker)}
+                            {message.isSelf ? '我' : (message.senderName || message.sender || message.talker)}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {formatTime(message.createTime)}
+                            {formatTime(message.time)}
                           </span>
                         </div>
 
@@ -256,7 +256,7 @@ export function ChatlogViewer() {
                           className={`rounded-lg ${
                             isImageMsg ? 'p-1' : 'px-3 py-2'
                           } ${
-                            message.isSender
+                            message.isSelf
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           }`}

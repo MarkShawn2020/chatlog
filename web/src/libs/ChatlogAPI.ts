@@ -19,30 +19,37 @@ export interface MessageContents {
 }
 
 export interface Message {
-  localId: number;
-  talkerId: number;
-  msgSvrId: string;
-  type: number;
-  subType: number;
-  isSender: boolean;
-  createTime: number;
-  sequence: number;
-  statusEx: number;
-  flagEx: number;
-  status: number;
-  msgSeq: number;
-  msgServerSeq: number;
-  msgSequence: number;
-  createTimestamp: string;
+  seq: number;
+  time: string;
   talker: string;
-  content: string;
-  compressedContent: string;
-  bytesExtra: string;
-  displayContent: string;
+  talkerName?: string;
+  isChatRoom: boolean;
   sender: string;
   senderName?: string;
   senderAvatar?: string;
+  isSelf: boolean;
+  type: number;
+  subType: number;
+  content: string;
+  displayContent?: string;
   contents?: MessageContents;
+
+  // Legacy fields (kept for backward compatibility)
+  localId?: number;
+  talkerId?: number;
+  msgSvrId?: string;
+  isSender?: boolean;
+  createTime?: number;
+  sequence?: number;
+  statusEx?: number;
+  flagEx?: number;
+  status?: number;
+  msgSeq?: number;
+  msgServerSeq?: number;
+  msgSequence?: number;
+  createTimestamp?: string;
+  compressedContent?: string;
+  bytesExtra?: string;
 }
 
 export interface Contact {
@@ -83,6 +90,8 @@ export interface Session {
   nTime: string;
   nUnReadCount: number;
   avatarUrl?: string;
+  isPinned: boolean;
+  isMinimized: boolean;
 }
 
 export interface SessionList {
