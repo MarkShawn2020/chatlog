@@ -18,7 +18,7 @@ export function ChatPanel() {
   const [messages, setMessages] = useAtom(conversationMessagesAtom);
   const [exportDialogOpen, setExportDialogOpen] = useAtom(exportDialogOpenAtom);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('🎯 [ChatPanel] selectedConversation changed:', selectedConversation);
@@ -26,8 +26,9 @@ export function ChatPanel() {
 
   // Auto scroll to bottom when messages load/change (no animation)
   useEffect(() => {
-    if (messages.length > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    if (messages.length > 0 && messagesContainerRef.current) {
+      // Directly set scrollTop to scrollHeight for instant scroll to bottom
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -130,7 +131,7 @@ export function ChatPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden">
         {error ? (
           <div className="flex items-center justify-center h-full p-4">
             <div className="text-center text-muted-foreground">
@@ -262,7 +263,6 @@ export function ChatPanel() {
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
