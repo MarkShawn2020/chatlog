@@ -33,11 +33,25 @@ export function ConversationListPanel() {
     error: sessionsError,
   } = useInfiniteQuery({
     queryKey: ['sessions'],
-    queryFn: ({ pageParam = 0 }) =>
-      chatlogAPI.getSessions({ format: 'json', limit: 50, offset: pageParam }),
+    queryFn: ({ pageParam = 0 }) => {
+      console.log('🔍 [Sessions Query] Fetching with offset:', pageParam);
+      return chatlogAPI.getSessions({ format: 'json', limit: 50, offset: pageParam });
+    },
     getNextPageParam: (lastPage, allPages) => {
       const loadedCount = allPages.reduce((sum, page) => sum + page.items.length, 0);
-      return loadedCount < lastPage.total ? loadedCount : undefined;
+      // Backend may return total=0, so we use items count to determine if there's more data
+      // If we got a full page (50 items), there might be more data
+      const hasMore = lastPage.items.length === 50;
+      const nextOffset = hasMore ? loadedCount : undefined;
+      console.log('📊 [Sessions getNextPageParam]', {
+        lastPageItemsCount: lastPage.items.length,
+        total: lastPage.total,
+        loadedCount,
+        hasMore,
+        nextOffset,
+        allPagesCount: allPages.length,
+      });
+      return nextOffset;
     },
     enabled: activeSection === 'chats',
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
@@ -59,7 +73,9 @@ export function ConversationListPanel() {
       chatlogAPI.getContacts({ format: 'json', limit: 20, offset: pageParam }),
     getNextPageParam: (lastPage, allPages) => {
       const loadedCount = allPages.reduce((sum, page) => sum + page.items.length, 0);
-      return loadedCount < lastPage.total ? loadedCount : undefined;
+      // If we got a full page (20 items), there might be more data
+      const hasMore = lastPage.items.length === 20;
+      return hasMore ? loadedCount : undefined;
     },
     enabled: activeSection === 'contacts',
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
@@ -81,7 +97,9 @@ export function ConversationListPanel() {
       chatlogAPI.getChatRooms({ format: 'json', limit: 20, offset: pageParam }),
     getNextPageParam: (lastPage, allPages) => {
       const loadedCount = allPages.reduce((sum, page) => sum + page.items.length, 0);
-      return loadedCount < lastPage.total ? loadedCount : undefined;
+      // If we got a full page (20 items), there might be more data
+      const hasMore = lastPage.items.length === 20;
+      return hasMore ? loadedCount : undefined;
     },
     enabled: activeSection === 'groups',
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
@@ -114,13 +132,30 @@ export function ConversationListPanel() {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
+      console.log('📜 [Scroll Debug]', {
+        activeSection,
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        distanceFromBottom,
+        hasNextSessionsPage,
+        hasNextContactsPage,
+        hasNextChatroomsPage,
+        isFetchingNextSessionsPage,
+        isFetchingNextContactsPage,
+        isFetchingNextChatroomsPage,
+      });
+
       // Trigger load when within 200px of bottom
       if (distanceFromBottom < 200) {
         if (activeSection === 'chats' && hasNextSessionsPage && !isFetchingNextSessionsPage) {
+          console.log('🔄 Loading next sessions page...');
           fetchNextSessionsPage();
         } else if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
+          console.log('🔄 Loading next contacts page...');
           fetchNextContactsPage();
         } else if (activeSection === 'groups' && hasNextChatroomsPage && !isFetchingNextChatroomsPage) {
+          console.log('🔄 Loading next chatrooms page...');
           fetchNextChatroomsPage();
         }
       }
@@ -139,6 +174,43 @@ export function ConversationListPanel() {
     isFetchingNextSessionsPage,
     isFetchingNextContactsPage,
     isFetchingNextChatroomsPage,
+    fetchNextSessionsPage,
+    fetchNextContactsPage,
+    fetchNextChatroomsPage,
+  ]);
+
+  // Also check after data changes (in case new items don't fill the container)
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || isLoading) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    if (distanceFromBottom < 200) {
+      if (activeSection === 'chats' && hasNextSessionsPage && !isFetchingNextSessionsPage) {
+        console.log('🔄 Auto-loading more sessions (content too short)...');
+        fetchNextSessionsPage();
+      } else if (activeSection === 'contacts' && hasNextContactsPage && !isFetchingNextContactsPage) {
+        console.log('🔄 Auto-loading more contacts (content too short)...');
+        fetchNextContactsPage();
+      } else if (activeSection === 'groups' && hasNextChatroomsPage && !isFetchingNextChatroomsPage) {
+        console.log('🔄 Auto-loading more chatrooms (content too short)...');
+        fetchNextChatroomsPage();
+      }
+    }
+  }, [
+    sessions.length,
+    contacts.length,
+    chatrooms.length,
+    activeSection,
+    hasNextSessionsPage,
+    hasNextContactsPage,
+    hasNextChatroomsPage,
+    isFetchingNextSessionsPage,
+    isFetchingNextContactsPage,
+    isFetchingNextChatroomsPage,
+    isLoading,
     fetchNextSessionsPage,
     fetchNextContactsPage,
     fetchNextChatroomsPage,
